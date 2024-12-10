@@ -3,15 +3,18 @@ set -eu
 prj_root=`dirname -- "$0"`
 . "$prj_root"/common.sh
 
-email=`getvar ~/.getcert email`
+[ -f ~/.getcert ] && config_file=~/.getcert || config_file=/etc/getcert
+
+email=`getvar "$config_file" email`
 if ! [ "$email" ]; then
     printf '%s: email is required\n' "$0" >&2
     exit 1
 fi
 
-docroot=`getvar ~/.getcert docroot`
+docroot=`getvar "$config_file" docroot`
 
-if ! [ -d ~/.getcert.d ]; then
+[ -d ~/.getcert.d ] && config_dir=~/.getcert.d || config_dir=/etc/getcert.d
+if ! [ -d "$config_dir" ]; then
     exit
 fi
 
@@ -24,7 +27,7 @@ fi
 declare -A seen_renew_hooks
 pending_renew_hooks=()
 exit_code=0
-for f in ~/.getcert.d/*; do
+for f in "$config_dir"/*; do
     getarr "$f" domains
     if [ ${#domains[@]} -eq 0 ]; then
         printf '%s: at least one domain must be specified (%s)\n' "$0" "$f" >&2

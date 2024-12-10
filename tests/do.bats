@@ -9,9 +9,11 @@ setup() {
 }
 
 mkconf() {
-    local docroot= domains=() renew_hooks=() staging=()
+    local base=.getcert docroot= domains=() renew_hooks=() staging=()
     while [ $# -gt 0 ]; do
         case "$1" in
+        --system) base=getcert
+                  shift;;
         --docroot) docroot=$2
                    shift 2;;
         -d) domains+=("$2")
@@ -34,11 +36,11 @@ mkconf() {
         if [ "$docroot" ]; then
             echo docroot="$docroot"
         fi
-    } > "$BATS_TEST_TMPDIR"/home/.getcert
+    } > "$BATS_TEST_TMPDIR"/home/"$base"
 
     if [ ${#domains[*]} -eq 0 ]; then return; fi
 
-    mkdir -- "$BATS_TEST_TMPDIR"/home/.getcert.d
+    mkdir -- "$BATS_TEST_TMPDIR"/home/"$base".d
 
     local i=0
     for d in "${domains[@]}"; do
@@ -57,7 +59,7 @@ mkconf() {
             if [ "${staging[i]}" ]; then
                 echo staging=1
             fi
-        } > "$BATS_TEST_TMPDIR"/home/.getcert.d/"${first_domain:-dummy}"
+        } > "$BATS_TEST_TMPDIR"/home/"$base".d/"${first_domain:-dummy}"
         i=$(( i + 1 ))
     done
 }
@@ -179,6 +181,19 @@ docker_run_simp_le_cmd() {
                 "`docker_stop_httpd_cmd`"
 
     HOME=$BATS_TEST_TMPDIR/home \
+        ./do.sh
+}
+
+@test 'obtains a certificate using configs in /etc' {
+    mkconf --system -d example.com
+    stub docker "`docker_images_httpd_cmd`" \
+                "`docker_run_httpd_cmd`" \
+                "`docker_images_simp_le_cmd`" \
+                "`docker_run_simp_le_cmd \
+                    -d example.com`" \
+                "`docker_stop_httpd_cmd`"
+
+    with_changed_etc \
         ./do.sh
 }
 
@@ -394,5 +409,27 @@ teardown() {
     unstub docker
     if [ "${ncat_pid-}" ]; then
         kill -- "$ncat_pid" 2>/dev/null || true
+    fi
+    unchange_etc
+}
+
+with_changed_etc() {
+    if [ "${ALLOW_CHANGING_ETC:-}" ]; then
+        [ "$UID" = 1 ] && local sudo=() || local sudo=(sudo)
+        "${sudo[@]}" cp -r -- "$BATS_TEST_TMPDIR"/home/* /etc
+        etc_changed=1
+        "$@"
+    else
+        touch -- "$BATS_TEST_TMPDIR"/home/bash.bashrc-override
+        bwrap --dev-bind / / \
+              --bind "$BATS_TEST_TMPDIR"/home /etc \
+              "$@"
+    fi
+}
+
+unchange_etc() {
+    if [ "${ALLOW_CHANGING_ETC:-}" ] && [ "${etc_changed-}" ]; then
+        [ "$UID" = 1 ] && local sudo=() || local sudo=(sudo)
+        "${sudo[@]}" rm -r /etc/getcert /etc/getcert.d
     fi
 }

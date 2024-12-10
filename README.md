@@ -31,7 +31,7 @@ $ path/to/getcert/do.sh
 
 ## Running tests
 
-Prerequisites: [`ncat`][a], [`wait4ports`][b] or [`wait-for-it`][c], [`bats-support`][d], [`bats-assert`][e], [`bats-file`][f], [`jasonkarns/bats-mock`][g].
+Prerequisites: [`bubblewrap`][i], [`ncat`][a], [`wait4ports`][b] or [`wait-for-it`][c], [`bats-support`][d], [`bats-assert`][e], [`bats-file`][f], [`jasonkarns/bats-mock`][g].
 
 ```
 $ bats tests
@@ -68,3 +68,4 @@ $ docker run --rm -it \
 [f]: https://github.com/bats-core/bats-file
 [g]: https://github.com/jasonkarns/bats-mock
 [h]: https://bats-core.readthedocs.io/en/stable/writing-tests.html#bats-load-library-load-system-wide-libraries
+[i]: https://github.com/containers/bubblewrap

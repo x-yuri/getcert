@@ -17,4 +17,4 @@ jobs:
           git clone https://github.com/jasonkarns/bats-mock ~/.bats/lib/bats-mock
       - name: Run tests
         run: |
-          ~/.bats/bin/bats tests
+          ALLOW_CHANGING_ETC=1 ~/.bats/bin/bats tests
